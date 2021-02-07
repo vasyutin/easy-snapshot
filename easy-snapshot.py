@@ -59,7 +59,7 @@ def GetWorkingMode():
          ReportSaveModeError('-a|--archiver')
       return WorkingMode.restore
       
-   sys.stderr.write("Error! The mode was not specified. Hoy have to specify either save (-s|--save) or restore (-r|--restore) mode.\n\n")
+   sys.stderr.write("Error! The mode was not specified. You have to specify either save (-s|--save) or restore (-r|--restore) mode.\n\n")
    return WorkingMode.error
 
    #   if hasattr(g_Arguments, 'restoredStateName'):
@@ -95,7 +95,7 @@ def SaveFolderState(State_, File_):
 
 # -----------------------------------------------------------------------------
 def ReadFolderState(StateFile_):
-   Pattern = re.compile('(f|d)\s+(\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d)\s+(\d+)\s+(\S+)')
+   Pattern = re.compile('(f|d)\s+(\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d)\s+(\d+)\s+(\S.+)')
    State = []
    try:
       with open(StateFile_, 'r', encoding='utf-8') as File:
@@ -124,6 +124,7 @@ def SaveListOfUpdates(CurrentState_, OtherState_, File_):
    OtherSize = len(OtherState_)
    iCurrent = 0
    iOther = 0
+   #print('c:\n' + str(CurrentState_) + '\no:\n' + str(OtherState_))
    while iCurrent < CurrentSize and iOther < OtherSize:
       #
       while CurrentState_[iCurrent][0] == FOLDER_TAG:
@@ -139,6 +140,7 @@ def SaveListOfUpdates(CurrentState_, OtherState_, File_):
       CurrentName = CurrentState_[iCurrent][3]
       OtherName = OtherState_[iOther][3]
       if CurrentName < OtherName:
+         #print('c: ' + CurrentName + ' < o: ' + OtherName)
          Diff.append(CurrentState_[iCurrent][3])
          iCurrent += 1
       elif CurrentName > OtherName:
@@ -167,11 +169,11 @@ sys.stderr.reconfigure(encoding='utf-8')
 
 ArgParser = argparse.ArgumentParser(description='Easy Snapshoter. Saves and restores the state of folders for an incremental backup.')
 ArgParser.add_argument('-s', '--save', metavar = '<State file>', type = str, \
-   help = 'Save the state of a given folder (-f or --folder) to a file with the given name ', dest = SAVED_STATE)
-ArgParser.add_argument('-r', '--restore', type = str, help = 'Restore the state of a given folder (-f or --folder)', dest = RESTORED_STATE)
-ArgParser.add_argument('-f', '--folder', type = str, help = 'ToDo', dest = FOLDER)
-ArgParser.add_argument('-w', '--compare-with', type = str, help = 'ToDo', dest = COMPARE_WITH)
-ArgParser.add_argument('-l', '--list-of-updates', type = str, help = 'ToDo', dest = LIST_OF_UPDATES)
+   help = 'Save the state of a given folder (-f|--folder) to a file with the given name ', dest = SAVED_STATE)
+ArgParser.add_argument('-r', '--restore', metavar = '<State file>', type = str, help = 'Restore the state of a given folder (-f|--folder)', dest = RESTORED_STATE)
+ArgParser.add_argument('-f', '--folder', metavar = '<Folder>', type = str, help = 'ToDo', dest = FOLDER)
+ArgParser.add_argument('-w', '--compare-with', metavar = '<State file>', type = str, help = 'ToDo', dest = COMPARE_WITH)
+ArgParser.add_argument('-l', '--list-of-new-files', metavar = '<List file>', type = str, help = 'ToDo', dest = LIST_OF_UPDATES)
 ArgParser.add_argument('-a', '--archiver', type=str, help='ToDo', dest = ARCHIVER)
 ArgParser.add_argument('-c', '--current-state', type = str, help = 'ToDo', dest = CURRENT_STATE)
 ArgParser.add_argument('-g', '--changed-files', type = str, help = 'ToDo', dest = CHANGED_FILES_DIR)
@@ -185,26 +187,18 @@ if Mode is WorkingMode.error:
    ArgParser.print_help()
    os._exit(1)
 
-SAVED_STATE = 'savedState'
-RESTORED_STATE = 'restoredState'
-CURRENT_STATE = 'currentState'
-CHANGED_FILES_DIR = 'changedFilesDir'
-ARCHIVER = 'archiver'
-LIST_OF_UPDATES = 'listOfUpdates'
-COMPARE_WITH = 'compareWith'
-FOLDER = 'folder'
-
-
-
 if Mode is WorkingMode.save:
    State = GetFolderState(getattr(g_Arguments, FOLDER))
    SaveFolderState(State, getattr(g_Arguments, SAVED_STATE))
    if getattr(g_Arguments, COMPARE_WITH) != None or getattr(g_Arguments, LIST_OF_UPDATES) != None:
       if getattr(g_Arguments, COMPARE_WITH) == None:
-         
-
-   if getattr(g_Arguments, 'compareWith') != None and hasattr(g_Arguments, 'listOfUpdates'):
-      OtherState = ReadFolderState(g_Arguments.compareWith)
-      SaveListOfUpdates(State, OtherState, g_Arguments.listOfUpdates)
+         sys.stderr.write('Error! The state to compare current state with (-w|--compare-with) was not specified (-w|--compare-with).\n')
+         ArgParser.print_help()
+         os._exit(1)
+      OtherState = ReadFolderState(getattr(g_Arguments, COMPARE_WITH))
+      if getattr(g_Arguments, LIST_OF_UPDATES) == None:
+         sys.stderr.write('Warning! The file to write the list of updates (-l|--list-of-new-files) was not specified.\n')
+      else:
+         SaveListOfUpdates(State, OtherState, getattr(g_Arguments, LIST_OF_UPDATES))
 else:
    pass
