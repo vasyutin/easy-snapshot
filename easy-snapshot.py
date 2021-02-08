@@ -1,5 +1,6 @@
 import enum, os, sys, time, glob, argparse, re
 from pathlib import Path
+from stat import *
 
 # -----------------------------------------------------------------------------
 class WorkingMode(enum.Enum):
@@ -72,13 +73,18 @@ def GetWorkingMode():
 
 # -----------------------------------------------------------------------------
 def GetFolderState(Folder_):
-   FileList = list(Path(Folder_).rglob('*'))
+   def ProcessFolder(Folder_):
+      for Item in os.scandir(Folder_):
+         Status = Item.stat()
+         IsDir = S_ISDIR(Status.st_mode)
+         if IsDir or S_ISREG(Status.st_mode):
+            State.append([FOLDER_TAG if IsDir else FILE_TAG, \
+               time.strftime('%Y-%m-%d_%H-%M-%S', time.gmtime(Status.st_mtime)), str(Status.st_size), Item.path])
+            if IsDir:
+               ProcessFolder(Item.path)
+   #
    State = []
-   for File in FileList:
-      FileState = [FOLDER_TAG if os.path.isdir(File) else FILE_TAG, time.strftime('%Y-%m-%d_%H-%M-%S', time.gmtime(os.path.getmtime(File))), \
-         str(os.path.getsize(File)), str(File)]
-      State.append(FileState)
-   State.sort(key=lambda x: x[3])
+   ProcessFolder(Folder_)
    return State
 
 # -----------------------------------------------------------------------------
