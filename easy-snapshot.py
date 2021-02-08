@@ -27,16 +27,16 @@ FOLDER = 'folder'
 def GetWorkingMode():
    def ReportSaveModeError(Option_):
       sys.stderr.write('Error! Invalid option (' + Option_ + ') for the save mode.')
-      os._exit(1)
+      sys.exit(1)
 
    def ReportRestoreModeError(Option_):
       sys.stderr.write('Error! Invalid option (' + Option_ + ') for the restore mode.')
-      os._exit(1)
+      sys.exit(1)
 
    def CheckForFolder():
       if getattr(g_Arguments, FOLDER) == None:
          sys.stderr.write("Error! Folder for snaphot (-f|--folder) was not specified.")
-         os._exit(1)
+         sys.exit(1)
 
    if getattr(g_Arguments, SAVED_STATE) != None:
       # check for illegal options
@@ -85,6 +85,7 @@ def GetFolderState(Folder_):
    #
    State = []
    ProcessFolder(Folder_)
+   State.sort(key=lambda x: x[3])
    return State
 
 # -----------------------------------------------------------------------------
@@ -96,12 +97,12 @@ def SaveFolderState(State_, File_):
             File.write(' '.join(Item) + '\n')
    except Exception as E_:
       sys.stderr.write("Error! Can't write snapshot '" + File_ + "': " + str(E_) + "\n")
-      os._exit(1)
+      sys.exit(1)
    return True
 
 # -----------------------------------------------------------------------------
 def ReadFolderState(StateFile_):
-   Pattern = re.compile('(f|d)\s+(\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d)\s+(\d+)\s+(\S.+)')
+   Pattern = re.compile('(f|d)\s+(\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d)\s+(\d+)\s+(\S.*)')
    State = []
    try:
       with open(StateFile_, 'r', encoding='utf-8') as File:
@@ -114,12 +115,11 @@ def ReadFolderState(StateFile_):
             Match = Pattern.match(Line)
             if Match == None:
                sys.stderr.write("Error! Invalid snapshot '" + StateFile_ + ".\n")
-               os._exit(1)
+               sys.exit(1)
             State.append([Match.group(1), Match.group(2), Match.group(3), Match.group(4)])
-
    except Exception as E_:
       print("Error! Can't read snapshot '" + StateFile_ + "': " + str(E_))
-      os._exit(1)
+      sys.exit(1)
    State.sort(key=lambda x: x[3])
    return State
 
@@ -163,7 +163,7 @@ def SaveListOfUpdates(CurrentState_, OtherState_, File_):
             File.write(Item + '\n')
    except Exception as E_:
       sys.stderr.write("Error! Can't write list of updates '" + File_ + "': " + str(E_) + "\n")
-      os._exit(1)
+      sys.exit(1)
 
 # -----------------------------------------------------------------------------
 #class Object(object):
@@ -191,7 +191,7 @@ Mode = GetWorkingMode()
 
 if Mode is WorkingMode.error:
    ArgParser.print_help()
-   os._exit(1)
+   sys.exit(1)
 
 if Mode is WorkingMode.save:
    State = GetFolderState(getattr(g_Arguments, FOLDER))
@@ -200,7 +200,7 @@ if Mode is WorkingMode.save:
       if getattr(g_Arguments, COMPARE_WITH) == None:
          sys.stderr.write('Error! The state to compare current state with (-w|--compare-with) was not specified (-w|--compare-with).\n')
          ArgParser.print_help()
-         os._exit(1)
+         sys.exit(1)
       OtherState = ReadFolderState(getattr(g_Arguments, COMPARE_WITH))
       if getattr(g_Arguments, LIST_OF_UPDATES) == None:
          sys.stderr.write('Warning! The file to write the list of updates (-l|--list-of-new-files) was not specified.\n')
