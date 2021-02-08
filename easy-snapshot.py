@@ -1,6 +1,6 @@
 import enum, os, sys, time, glob, argparse, re
 from pathlib import Path
-from stat import *
+from stat import S_ISREG, S_ISDIR
 
 # -----------------------------------------------------------------------------
 class WorkingMode(enum.Enum):
@@ -46,30 +46,24 @@ def GetWorkingMode():
          ReportSaveModeError('-c|--current-state')
       if getattr(g_Arguments, CHANGED_FILES_DIR) != None:
          ReportSaveModeError('-g|--changed-files')
+      CheckForFolder()
       return WorkingMode.save
 
    if getattr(g_Arguments, RESTORED_STATE) != None:
       # check for illegal options
       if getattr(g_Arguments, SAVED_STATE) != None:
-         ReportSaveModeError('-s|--save')
+         ReportRestoreModeError('-s|--save')
       if getattr(g_Arguments, COMPARE_WITH) != None:
-         ReportSaveModeError('-w|--compare-with')
+         ReportRestoreModeError('-w|--compare-with')
       if getattr(g_Arguments, LIST_OF_UPDATES) != None:
-         ReportSaveModeError('-l|--list-of-updates')
+         ReportRestoreModeError('-l|--list-of-updates')
       if getattr(g_Arguments, ARCHIVER) != None:
-         ReportSaveModeError('-a|--archiver')
+         ReportRestoreModeError('-a|--archiver')
+      CheckForFolder()
       return WorkingMode.restore
       
    sys.stderr.write("Error! The mode was not specified. You have to specify either save (-s|--save) or restore (-r|--restore) mode.\n\n")
    return WorkingMode.error
-
-   #   if hasattr(g_Arguments, 'restoredStateName'):
-   #      sys.stderr.write()
-   #g_Arguments.savedStateName = '02.esn'
-   #g_Arguments.folder = 'C:\\Data'
-   #g_Arguments.compareWith = '01.esn'
-   #g_Arguments.listOfUpdates = 'updates.lst'
-   #return WorkingMode.save
 
 # -----------------------------------------------------------------------------
 def GetFolderState(Folder_):
@@ -102,7 +96,7 @@ def SaveFolderState(State_, File_):
 
 # -----------------------------------------------------------------------------
 def ReadFolderState(StateFile_):
-   Pattern = re.compile('(f|d)\s+(\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d)\s+(\d+)\s+(\S.*)')
+   Pattern = re.compile(r'(f|d)\s+(\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d)\s+(\d+)\s+(\S.*)')
    State = []
    try:
       with open(StateFile_, 'r', encoding='utf-8') as File:
@@ -173,7 +167,7 @@ def SaveListOfUpdates(CurrentState_, OtherState_, File_):
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
 
-ArgParser = argparse.ArgumentParser(description='Easy Snapshoter. Saves and restores the state of folders for an incremental backup.')
+ArgParser = argparse.ArgumentParser(description='Easy Snapshot. Saves and restores the state of folders. Makes incremental backup together with archive manager (7z etc.).')
 ArgParser.add_argument('-s', '--save', metavar = '<State file>', type = str, \
    help = 'Save the state of a given folder (-f|--folder) to a file with the given name ', dest = SAVED_STATE)
 ArgParser.add_argument('-r', '--restore', metavar = '<State file>', type = str, help = 'Restore the state of a given folder (-f|--folder)', dest = RESTORED_STATE)
